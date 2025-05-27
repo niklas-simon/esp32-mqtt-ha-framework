@@ -7,7 +7,8 @@
 #include <LittleFS.h>
 #include <MQTT.h>
 
-MQTTClient client;
+WiFiClient wifiClient;
+MQTTClient client(wifiClient);
 
 int connect(String wifi_host, String wifi_ssid, String wifi_password, String mqtt_host, String mqtt_user, String mqtt_password) {
     if (WiFi.status() != WL_CONNECTED) {
@@ -24,11 +25,14 @@ int connect(String wifi_host, String wifi_ssid, String wifi_password, String mqt
         Serial.println(WiFi.localIP());
     }
 
+    client.begin(wifiClient);
+
     if (!client.connected()) {
         Serial.print("Connecting to MQTT ");
 
         while (!client.connect(mqtt_host.c_str(), mqtt_user.c_str(), mqtt_password.c_str())) {
             if (client.lastError() != LWMQTT_SUCCESS) {
+                Serial.println();
                 return 1;
             }
             Serial.print(".");
@@ -44,7 +48,7 @@ int connect(String wifi_host, String wifi_ssid, String wifi_password, String mqt
 void setup()
 {
     Serial.begin(9600);
-    delay(1000);
+    while (!Serial);
     Serial.println("Hello World!");
 
     Preferences preferences;
