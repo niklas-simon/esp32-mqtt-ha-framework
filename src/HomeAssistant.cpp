@@ -26,6 +26,13 @@ void HomeAssistant::send_discovery() {
 }
 
 void HomeAssistant::on_message(String &topic, String &payload) {
+    String command_prefix = device->base_topic() + "/command/";
+    if (topic.startsWith(command_prefix)) {
+        String component = topic.substring(command_prefix.length());
+        device->on_command(component, payload);
+        send_state();
+    }
+    
     if (topic.equals("homeassistant/status")) {
         Serial.println("Discovery resend was requested");
         send_discovery();
@@ -51,8 +58,8 @@ int HomeAssistant::connect(String wifi_host, String wifi_ssid, String wifi_passw
     Serial.print("WiFi connected: ");
     Serial.println(WiFi.localIP());
 
-    client.onMessage(on_message);
     client.begin(mqtt_host.c_str(), wifiClient);
+    client.onMessage(on_message);
     
     if (!client.connected()) {
         Serial.print("connecting to MQTT ");
@@ -134,6 +141,9 @@ void HomeAssistant::begin() {
         return;
     }
 
+    client.subscribe("homeassistant/status");
+    device->subscribe(client);
+
     send_discovery();
 
     initialized = true;
@@ -141,9 +151,20 @@ void HomeAssistant::begin() {
     Serial.println("initialization successful");
 }
 
+void HomeAssistant::send_state() {
+    Serial.println("sending state message");
+    
+    JsonDocument j_value;
+    String value;
+
+    device->state(j_value.to<JsonObject>());
+    serializeJson(j_value, value);
+    client.publish(device->base_topic() + "/state", value);
+}
+
 void HomeAssistant::loop() {
     if (!initialized) {
-        Serial.println("HomeAssistant::loop: error: loop called before begin");
+        //Serial.println("HomeAssistant::loop: error: loop called before begin");
         return;
     }
 
@@ -169,12 +190,5 @@ void HomeAssistant::loop() {
         client.publish(device->base_topic() + "/error", error);
     }
 
-    Serial.println("sending value message");
-    
-    JsonDocument j_value;
-    String value;
-
-    device->state(j_value.to<JsonObject>());
-    serializeJson(j_value, value);
-    client.publish(device->base_topic() + "/state", value);
+    send_state();
 }

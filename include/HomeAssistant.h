@@ -21,6 +21,7 @@ class HomeAssistant {
         static void send_discovery();
         static void on_message(String &topic, String &payload);
         static int connect(String wifi_host, String wifi_ssid, String wifi_password, String mqtt_host, String mqtt_user, String mqtt_password);
+        static void send_state();
 
     public:
         static void configure(Device *_device, std::function<void ()> _update_state, int _retries = 5, int _interval = 30000);
