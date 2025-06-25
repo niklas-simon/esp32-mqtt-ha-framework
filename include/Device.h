@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <MQTT.h>
 
 class Component;
 
@@ -31,4 +32,6 @@ class Device {
         void state(JsonObject obj);
         String error();
         void add_component(Component *cmp);
+        void on_command(String &component, String &payload);
+        void subscribe(MQTTClient &client);
 };

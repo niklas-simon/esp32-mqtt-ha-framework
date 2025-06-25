@@ -121,11 +121,15 @@ void handleHomePage()
     server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     server.sendHeader("Pragma", "no-cache");
     server.sendHeader("Expires", "-1");
+    
+    String index;
 
     switch (server.method()) {
         case HTTP_GET:
             Serial.println("handling GET /");
-            server.send(200, "text/html", readFile(LittleFS, "/config.html"));
+            index = readFile(LittleFS, "/config.html");
+            index = index.substring(0, index.length() - 1);
+            server.send(200, "text/html", index);
             break;
         case HTTP_POST:
             Serial.println("handling POST /");
