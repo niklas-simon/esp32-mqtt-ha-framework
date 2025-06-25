@@ -16,7 +16,7 @@ void Device::json(JsonObject obj) {
 
     JsonObject j_cmps = obj["cmps"].to<JsonObject>();
     for (int i = 0; i < cmps_len; i++) {
-        JsonObject obj = j_cmps[cmps[i]->getKey()].to<JsonObject>();
+        JsonObject obj = j_cmps[cmps[i]->get_key()].to<JsonObject>();
         cmps[i]->json(obj);
     }
 }
@@ -24,9 +24,9 @@ void Device::json(JsonObject obj) {
 void Device::state(JsonObject obj) {
     for (int i = 0; i < cmps_len; i++) {
         if (cmps[i]->get_error().isEmpty()) {
-            obj[cmps[i]->getKey()] = cmps[i]->get_state();
+            obj[cmps[i]->get_key()] = cmps[i]->get_state();
         } else {
-            obj[cmps[i]->getKey()] = "None";
+            obj[cmps[i]->get_key()] = "None";
         }
     }
 }
@@ -57,4 +57,22 @@ void Device::add_component(Component *cmp) {
 
     cmps[cmps_len] = cmp;
     cmps_len++;
+}
+
+void Device::on_command(String &component, String &payload) {
+    Serial.print(component);
+    Serial.print(": ");
+    Serial.println(payload);
+    for (int i = 0; i < cmps_len; i++) {
+        if (component.equals(cmps[i]->get_key())) {
+            cmps[i]->on_command(payload);
+        }
+    }
+}
+
+void Device::subscribe(MQTTClient &client) {
+    String topic_prefix = base_topic() + "/command/";
+    for (int i = 0; i < cmps_len; i++) {
+        client.subscribe(topic_prefix + cmps[i]->get_key());
+    }
 }
