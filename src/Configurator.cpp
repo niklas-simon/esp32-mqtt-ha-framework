@@ -113,31 +113,48 @@ String readFile(fs::FS &fs, const char * path){
 
 void handleHomePage()
 {
-    if (captivePortal())
-    {
-        return;
-    }
-
     server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     server.sendHeader("Pragma", "no-cache");
     server.sendHeader("Expires", "-1");
     
     String index;
+    Preferences preferences;
+    preferences.begin("ha");
+    String wifi_host = preferences.getString("wifi_host", "");
+    String wifi_ssid = preferences.getString("wifi_ssid", "");
+    String mqtt_host = preferences.getString("mqtt_host", "");
+    String mqtt_user = preferences.getString("mqtt_user", "");
 
     switch (server.method()) {
         case HTTP_GET:
             Serial.println("handling GET /");
             index = readFile(LittleFS, "/config.html");
             index = index.substring(0, index.length() - 1);
+            int i;
+            while ((i = index.indexOf("%wifi_host%")) != -1) {
+                index = index.substring(0, i) + wifi_host + index.substring(i + 11);
+            }
+            while ((i = index.indexOf("%wifi_ssid%")) != -1) {
+                index = index.substring(0, i) + wifi_ssid + index.substring(i + 11);
+            }
+            while ((i = index.indexOf("%mqtt_host%")) != -1) {
+                index = index.substring(0, i) + mqtt_host + index.substring(i + 11);
+            }
+            while ((i = index.indexOf("%mqtt_user%")) != -1) {
+                index = index.substring(0, i) + mqtt_user + index.substring(i + 11);
+            }
             server.send(200, "text/html", index);
             break;
         case HTTP_POST:
             Serial.println("handling POST /");
-            Preferences preferences;
-            preferences.begin("ha");
             for (int i = 0; i < server.args(); i++) {
                 String key = server.argName(i);
                 String value = server.arg(i);
+
+                if (value.isEmpty()) {
+                    continue;
+                }
+
                 if (key.equals("wifi_host")) {
                     preferences.putString("wifi_host", value);
                 } else if (key.equals("wifi_ssid")) {
@@ -161,45 +178,67 @@ void handleHomePage()
     }
 }
 
-void handleNotFound()
-{
+void handleAPHomepage() {
     if (captivePortal())
     {
         return;
     }
 
+    handleHomePage();
+}
+
+void handleNotFound()
+{
     String message = F("File Not Found\n\n");
     message += F("URI: ");
     message += server.uri();
     server.send(404, "text/plain", message);
 }
 
-void setupWebServer()
+void handleAPNotFound() {
+    if (captivePortal())
+    {
+        return;
+    }
+
+    handleNotFound();
+}
+
+void setupWebServer(bool withAP)
 {
-    server.on("/", handleHomePage);
-    server.onNotFound(handleNotFound);
+    server.on("/", withAP ? handleAPHomepage : handleHomePage);
+    server.onNotFound(withAP ? handleAPNotFound : handleNotFound);
     server.begin();
 }
 
 void webServerTask(void *pvParameters)
 {
-    setupWebServer();
+    bool withAP = *((bool *) pvParameters);
+    setupWebServer(withAP);
     while (true)
     {
-        dnsServer.processNextRequest();
+        if (withAP) {
+            dnsServer.processNextRequest();
+        }
         server.handleClient();
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 
+Configurator::Configurator(bool _withAP) {
+    withAP = _withAP;
+}
+
 void Configurator::setup() {
-    setupAP();
+    if (withAP) {
+        setupAP();
+    }
 
     xTaskCreatePinnedToCore(
         webServerTask,
         "WebServerTask",
         8192,
-        NULL,
+        (void *) &withAP,
         1,
         &webServerTaskHandle,
         1);

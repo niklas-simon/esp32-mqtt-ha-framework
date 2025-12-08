@@ -23,74 +23,56 @@
         label, button {
             cursor: pointer;
         }
-        td:first-child {
-            width: 100%;
-            border-right: 1rem solid transparent;
+        .form-field {
+            display: flex;
+            flex-direction: column;
         }
-        td:not(:last-child) {
-            border-bottom: .5rem solid transparent;
+        .form-field > input {
+            height: 2rem;
+            font-size: 1.2em;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        button {
+            height: 2rem;
+            width: 100%;
         }
     </style>
 </head>
 <body>
     <form action="/" method="post">
-        <fieldset>
+        <fieldset class="form-group">
             <legend>WiFi Settings</legend>
-            <table>
-                <tr>
-                    <td>
-                        <label for="wifi_host">Hostname</label>
-                    </td>
-                    <td>
-                        <input type="text" id="wifi_host" name="wifi_host">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <label for="wifi_ssid">SSID</label>
-                    </td>
-                    <td>
-                        <input type="text" id="wifi_ssid" name="wifi_ssid">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <label for="wifi_password">Password</label>
-                    </td>
-                    <td>
-                        <input type="password" id="wifi_password" name="wifi_password">
-                    </td>
-                </tr>
-            </table>
+            <div class="form-field">
+                <label for="wifi_host">Hostname</label>
+                <input type="text" id="wifi_host" name="wifi_host" value="%wifi_host%">
+            </div>
+            <div class="form-field">
+                <label for="wifi_ssid">SSID</label>
+                <input type="text" id="wifi_ssid" name="wifi_ssid" value="%wifi_ssid%">
+            </div>
+            <div class="form-field">
+                <label for="wifi_password">Password</label>
+                <input type="password" id="wifi_password" name="wifi_password">
+            </div>
         </fieldset>
-        <fieldset>
+        <fieldset class="form-group">
             <legend>MQTT Settings</legend>
-            <table>
-                <tr>
-                    <td>
-                        <label for="mqtt_host">Broker Hostname</label>
-                    </td>
-                    <td>
-                        <input type="text" id="mqtt_host" name="mqtt_host">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <label for="mqtt_user">User</label>
-                    </td>
-                    <td>
-                        <input type="text" id="mqtt_user" name="mqtt_user">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <label for="mqtt_password">Password</label>
-                    </td>
-                    <td>
-                        <input type="password" id="mqtt_password" name="mqtt_password">
-                    </td>
-                </tr>
-            </table>
+            <div class="form-field">
+                <label for="mqtt_host">Broker Hostname</label>
+                <input type="text" id="mqtt_host" name="mqtt_host" value="%mqtt_host%">
+            </div>
+            <div class="form-field">
+                <label for="mqtt_user">User</label>
+                <input type="text" id="mqtt_user" name="mqtt_user" value="%mqtt_user%">
+            </div>
+            <div class="form-field">
+                <label for="mqtt_password">Password</label>
+                <input type="password" id="mqtt_password" name="mqtt_password">
+            </div>
         </fieldset>
         <div class="center">
             <button type="submit">Save</button>
