@@ -31,7 +31,9 @@ void update_state() {}
 
 void setup()
 {
-    Serial.begin(9600);
+    Serial.begin(115200);
+    while (!Serial && (millis() < 5000));
+    Serial.println("Hello World!");
 
     pinMode(MON_PIN, OUTPUT);
     pinMode(PC_PIN, OUTPUT);

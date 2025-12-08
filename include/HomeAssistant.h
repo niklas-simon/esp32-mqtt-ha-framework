@@ -20,7 +20,8 @@ class HomeAssistant {
         
         static void send_discovery();
         static void on_message(String &topic, String &payload);
-        static int connect(String wifi_host, String wifi_ssid, String wifi_password, String mqtt_host, String mqtt_user, String mqtt_password);
+        static int connect_wifi(String wifi_host, String wifi_ssid, String wifi_password);
+        static int connect_mqtt(String wifi_host, String mqtt_host, String mqtt_user, String mqtt_password);
         static void send_state();
 
     public:

@@ -39,13 +39,20 @@ void HomeAssistant::on_message(String &topic, String &payload) {
     }
 }
 
-int HomeAssistant::connect(String wifi_host, String wifi_ssid, String wifi_password, String mqtt_host, String mqtt_user, String mqtt_password) {
+int HomeAssistant::connect_wifi(String wifi_host, String wifi_ssid, String wifi_password) {
+    if (wifi_host.isEmpty() || wifi_ssid.isEmpty() || wifi_password.isEmpty()) {
+        return 1;
+    }
+
     if (WiFi.status() != WL_CONNECTED) {
         Serial.print("connecting to WiFi ");
         WiFi.setHostname(wifi_host.c_str());
         WiFi.begin(wifi_ssid, wifi_password);
-        while (WiFi.status() != WL_CONNECTED) {
-            if (WiFi.status() == WL_CONNECT_FAILED) {
+        for (int i = 0; WiFi.status() != WL_CONNECTED; i++) {
+            // WL_NO_SSID_AVAIL, WL_CONNECT_FAILED, WL_CONNECTION_LOST, WL_DISCONNECTED
+            if (WiFi.status() == 1 || (WiFi.status() >= 4 && WiFi.status() <= 6)) {
+                return 1;
+            } else if (i > 60) {
                 return 1;
             }
             Serial.print('.');
@@ -58,6 +65,14 @@ int HomeAssistant::connect(String wifi_host, String wifi_ssid, String wifi_passw
     Serial.print("WiFi connected: ");
     Serial.println(WiFi.localIP());
 
+    return 0;
+}
+
+int HomeAssistant::connect_mqtt(String wifi_host, String mqtt_host, String mqtt_user, String mqtt_password) {
+    if (wifi_host.isEmpty() || mqtt_host.isEmpty() || mqtt_user.isEmpty() || mqtt_password.isEmpty()) {
+        return 1;
+    }
+    
     client.begin(mqtt_host.c_str(), wifiClient);
     client.onMessage(on_message);
     
@@ -113,18 +128,11 @@ void HomeAssistant::begin() {
     String mqtt_user = preferences.getString("mqtt_user", "");
     String mqtt_password = preferences.getString("mqtt_password", "");
 
-    if (wifi_host.isEmpty() || wifi_ssid.isEmpty() || wifi_password.isEmpty() || mqtt_host.isEmpty() || mqtt_user.isEmpty() || mqtt_password.isEmpty()) {
-        Serial.println("opening captive portal");
-        Configurator config = Configurator();
-        config.setup();
-        return;
-    }
-
     Serial.println("successfully read configuration");
 
-    int tries;
-    for (tries = 1; true; tries++) {
-        if (connect(wifi_host, wifi_ssid, wifi_password, mqtt_host, mqtt_user, mqtt_password) == 0) {
+    bool useAP = false;
+    for (int tries = 1; true; tries++) {
+        if (connect_wifi(wifi_host, wifi_ssid, wifi_password) == 0) {
             break;
         }
 
@@ -132,12 +140,32 @@ void HomeAssistant::begin() {
             Serial.print("failed to connect. Retrying (");
             Serial.print(tries);
             Serial.println(")");
+            delay(1000);
             continue;
         }
 
-        Serial.println("failed to connect. Restarting...");
-        preferences.clear();
-        ESP.restart();
+        Serial.println("failed to connect. Opening AP...");
+        useAP = true;
+        break;
+    }
+
+    Configurator configurator = Configurator(useAP);
+    configurator.setup();
+
+    for (int tries = 1; true; tries++) {
+        if (connect_mqtt(wifi_host, mqtt_host, mqtt_user, mqtt_password) == 0) {
+            break;
+        }
+
+        if (tries < retries) {
+            Serial.print("failed to connect. Retrying (");
+            Serial.print(tries);
+            Serial.println(")");
+            delay(1000);
+            continue;
+        }
+
+        Serial.println("failed to connect to MQTT broker");
         return;
     }
 
